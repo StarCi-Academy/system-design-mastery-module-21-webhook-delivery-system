@@ -1,0 +1,69 @@
+name: 2-dead-letter-and-circuit-breaker
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: 2-dead-letter-and-circuit-breaker-postgres
+    environment:
+      - POSTGRES_USER=webhook
+      - POSTGRES_PASSWORD=webhook
+      - POSTGRES_DB=webhook
+    ports:
+      - "5437:5432"
+    networks:
+      - 2-dead-letter-and-circuit-breaker-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: 2-dead-letter-and-circuit-breaker-redis
+    ports:
+      - "6399:6379"
+    networks:
+      - 2-dead-letter-and-circuit-breaker-network
+
+  receiver-mock:
+    image: starciacademy/system-design-webhook-dead-letter-and-circuit-breaker-receiver-mock:latest
+    container_name: 2-dead-letter-and-circuit-breaker-receiver-mock
+    environment:
+      - PORT=3000
+      - WEBHOOK_SECRET=shared-secret-demo
+      - TIMESTAMP_SKEW_SECONDS=300
+      - REDIS_URL=redis://redis:6379
+      - IDEMPOTENCY_TTL_SECONDS=86400
+      - FAIL_FIRST_N_ATTEMPTS=0
+    depends_on:
+      - redis
+    networks:
+      - 2-dead-letter-and-circuit-breaker-network
+
+  emitter:
+    image: starciacademy/system-design-webhook-dead-letter-and-circuit-breaker-emitter:latest
+    container_name: 2-dead-letter-and-circuit-breaker-emitter
+    ports:
+      - "3021:3000"
+    environment:
+      - PORT=3000
+      - WEBHOOK_SECRET=shared-secret-demo
+      - POSTGRES_URL=postgres://webhook:webhook@postgres:5432/webhook
+      - REDIS_URL=redis://redis:6379
+      - QUEUE_NAME=webhook-deliver
+      - POLLER_ENABLED=true
+      - POLLER_BATCH=25
+      - WORKER_ENABLED=true
+      - WORKER_ATTEMPTS=4
+      - WORKER_BACKOFF_MS=500
+      - WORKER_CONCURRENCY=4
+      - RECEIVER_TIMEOUT_MS=5000
+      - CIRCUIT_FAIL_THRESHOLD=5
+      - CIRCUIT_FAIL_WINDOW_SEC=60
+      - CIRCUIT_OPEN_TTL_SEC=20
+    depends_on:
+      - postgres
+      - redis
+      - receiver-mock
+    networks:
+      - 2-dead-letter-and-circuit-breaker-network
+
+networks:
+  2-dead-letter-and-circuit-breaker-network:
+    name: 2-dead-letter-and-circuit-breaker-network

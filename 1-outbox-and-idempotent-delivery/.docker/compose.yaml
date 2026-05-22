@@ -1,0 +1,66 @@
+name: 1-outbox-and-idempotent-delivery
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: 1-outbox-and-idempotent-delivery-postgres
+    environment:
+      - POSTGRES_USER=webhook
+      - POSTGRES_PASSWORD=webhook
+      - POSTGRES_DB=webhook
+    ports:
+      - "5436:5432"
+    networks:
+      - 1-outbox-and-idempotent-delivery-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: 1-outbox-and-idempotent-delivery-redis
+    ports:
+      - "6398:6379"
+    networks:
+      - 1-outbox-and-idempotent-delivery-network
+
+  receiver-mock:
+    image: starciacademy/system-design-webhook-outbox-and-idempotent-delivery-receiver-mock:latest
+    container_name: 1-outbox-and-idempotent-delivery-receiver-mock
+    environment:
+      - PORT=3000
+      - WEBHOOK_SECRET=shared-secret-demo
+      - TIMESTAMP_SKEW_SECONDS=300
+      - REDIS_URL=redis://redis:6379
+      - IDEMPOTENCY_TTL_SECONDS=86400
+      - FAIL_FIRST_N_ATTEMPTS=2
+    depends_on:
+      - redis
+    networks:
+      - 1-outbox-and-idempotent-delivery-network
+
+  emitter:
+    image: starciacademy/system-design-webhook-outbox-and-idempotent-delivery-emitter:latest
+    container_name: 1-outbox-and-idempotent-delivery-emitter
+    ports:
+      - "3020:3000"
+    environment:
+      - PORT=3000
+      - WEBHOOK_SECRET=shared-secret-demo
+      - POSTGRES_URL=postgres://webhook:webhook@postgres:5432/webhook
+      - REDIS_URL=redis://redis:6379
+      - QUEUE_NAME=webhook-deliver
+      - POLLER_ENABLED=true
+      - POLLER_BATCH=25
+      - WORKER_ENABLED=true
+      - WORKER_ATTEMPTS=5
+      - WORKER_BACKOFF_MS=1000
+      - WORKER_CONCURRENCY=4
+      - RECEIVER_TIMEOUT_MS=5000
+    depends_on:
+      - postgres
+      - redis
+      - receiver-mock
+    networks:
+      - 1-outbox-and-idempotent-delivery-network
+
+networks:
+  1-outbox-and-idempotent-delivery-network:
+    name: 1-outbox-and-idempotent-delivery-network
