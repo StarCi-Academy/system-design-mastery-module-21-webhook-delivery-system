@@ -30,7 +30,7 @@ services:
       - TIMESTAMP_SKEW_SECONDS=300
       - REDIS_URL=redis://redis:6379
       - IDEMPOTENCY_TTL_SECONDS=86400
-      - FAIL_FIRST_N_ATTEMPTS=2
+      - FAIL_FIRST_N_ATTEMPTS=0
     depends_on:
       - redis
     networks:
