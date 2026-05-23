@@ -15,7 +15,7 @@ services:
     image: starciacademy/system-design-webhook-signing-and-retry-emitter:latest
     container_name: 0-webhook-signing-and-retry-emitter
     ports:
-      - "3019:3000"
+      - "3000:3000"
     environment:
       - PORT=3000
       - WEBHOOK_SECRET=shared-secret-demo

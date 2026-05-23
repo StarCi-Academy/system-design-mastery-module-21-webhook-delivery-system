@@ -9,7 +9,7 @@ services:
       - POSTGRES_PASSWORD=webhook
       - POSTGRES_DB=webhook
     ports:
-      - "5437:5432"
+      - "5432:5432"
     networks:
       - 2-dead-letter-and-circuit-breaker-network
 
@@ -17,7 +17,7 @@ services:
     image: redis:7-alpine
     container_name: 2-dead-letter-and-circuit-breaker-redis
     ports:
-      - "6399:6379"
+      - "6379:6379"
     networks:
       - 2-dead-letter-and-circuit-breaker-network
 
@@ -40,7 +40,7 @@ services:
     image: starciacademy/system-design-webhook-dead-letter-and-circuit-breaker-emitter:latest
     container_name: 2-dead-letter-and-circuit-breaker-emitter
     ports:
-      - "3021:3000"
+      - "3000:3000"
     environment:
       - PORT=3000
       - WEBHOOK_SECRET=shared-secret-demo
